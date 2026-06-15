@@ -38,11 +38,19 @@ static void my_flush_cb(lv_display_t *display, const lv_area_t *area, uint8_t *p
 {
     uint32_t *buf = (uint32_t *)px_map;
     int32_t x, y;
+    int32_t inv_x, inv_y;
+
     for (y = area->y1; y <= area->y2; y++)
     {
+        // Inversion de l'axe Y
+        inv_y = 271 - y; 
+
         for (x = area->x1; x <= area->x2; x++)
         {
-            BSP_LCD_DrawPixel(x, y, *buf);
+            // Inversion de l'axe X
+            inv_x = 479 - x; 
+            
+            BSP_LCD_DrawPixel(inv_x, inv_y, *buf);
             buf++;
         }
     }
@@ -59,8 +67,9 @@ static void my_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
 
     if (TS_State.touchDetected != 0)
     {
-        data->point.x = TS_State.touchX[0];
-        data->point.y = TS_State.touchY[0];
+        // Inversion simultanée des coordonnées tactiles
+        data->point.x = 479 - TS_State.touchX[0];
+        data->point.y = 271 - TS_State.touchY[0];
         data->state = LV_INDEV_STATE_PRESSED;
     }
     else
