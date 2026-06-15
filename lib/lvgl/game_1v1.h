@@ -10,6 +10,10 @@
 #define PIN_P2_BACK   D4
 #define PIN_P2_ATTACK D5
 
+#ifndef PIN_BUZZER
+#define PIN_BUZZER    D6
+#endif
+
 // Prototypes fournis par main.cpp
 extern int p1_skin;
 extern int p2_skin;
@@ -208,7 +212,7 @@ static lv_obj_t* create_character(lv_obj_t * parent, int skin_id, bool is_player
         lv_obj_set_style_border_width(belt, 0, 0);
         lv_obj_align(belt, LV_ALIGN_BOTTOM_MID, 0, -4);
     } 
-    else if(skin_id == 3) { // Ceinture Ninja aux couleurs de l'équipe
+    else if(skin_id == 3) { // Ceinture Ninja
         lv_obj_t * belt = lv_obj_create(torso);
         lv_obj_set_size(belt, 16, 5);
         lv_obj_set_style_bg_color(belt, team_c, 0);
@@ -226,7 +230,7 @@ static lv_obj_t* create_character(lv_obj_t * parent, int skin_id, bool is_player
     lv_obj_align(hood, LV_ALIGN_TOP_MID, is_player1 ? 3 : -3, 0); 
     lv_obj_remove_flag(hood, LV_OBJ_FLAG_SCROLLABLE);
 
-    // Détails du visage selon le skin
+    // Détails du visage
     if (skin_id == 0) { // Masque escrime
         lv_obj_t * mask = lv_obj_create(hood);
         lv_obj_set_size(mask, 10, 16); 
@@ -258,7 +262,7 @@ static lv_obj_t* create_character(lv_obj_t * parent, int skin_id, bool is_player
     } else if (skin_id == 3) { // Masque Ninja
         lv_obj_t * face_slit = lv_obj_create(hood);
         lv_obj_set_size(face_slit, 14, 5); 
-        lv_obj_set_style_bg_color(face_slit, lv_color_hex(0xFAD4B9), 0); // Peau
+        lv_obj_set_style_bg_color(face_slit, lv_color_hex(0xFAD4B9), 0); 
         lv_obj_set_style_border_width(face_slit, 0, 0); 
         lv_obj_align(face_slit, LV_ALIGN_TOP_MID, is_player1 ? 2 : -2, 4);
 
@@ -268,7 +272,6 @@ static lv_obj_t* create_character(lv_obj_t * parent, int skin_id, bool is_player
         lv_obj_set_style_border_width(eye, 0, 0);
         lv_obj_align(eye, is_player1 ? LV_ALIGN_RIGHT_MID : LV_ALIGN_LEFT_MID, is_player1 ? -2 : 2, 0);
         
-        // Bandeau ninja
         lv_obj_t * headband = lv_obj_create(hood);
         lv_obj_set_size(headband, 18, 3);
         lv_obj_set_style_bg_color(headband, team_c, 0);
@@ -360,11 +363,21 @@ static void game_1v1_loop() {
 
     if (p1_atk && p1_attack_cooldown == 0) {
         p1_attack_cooldown = COOLDOWN_FRAMES; p1_anim_timer = 5; 
-        if (in_range && p2_hp > 0) { p2_hp -= ATTACK_DAMAGE; if(p2_hp < 0) p2_hp = 0; lv_bar_set_value(hp_bar2, p2_hp, LV_ANIM_ON); }
+        if (in_range && p2_hp > 0) { 
+            p2_hp -= ATTACK_DAMAGE; 
+            if(p2_hp < 0) p2_hp = 0; 
+            lv_bar_set_value(hp_bar2, p2_hp, LV_ANIM_ON); 
+            tone(PIN_BUZZER, 150, 100); // Son d'impact !
+        }
     }
     if (p2_atk && p2_attack_cooldown == 0) {
         p2_attack_cooldown = COOLDOWN_FRAMES; p2_anim_timer = 5; 
-        if (in_range && p1_hp > 0) { p1_hp -= ATTACK_DAMAGE; if(p1_hp < 0) p1_hp = 0; lv_bar_set_value(hp_bar1, p1_hp, LV_ANIM_ON); }
+        if (in_range && p1_hp > 0) { 
+            p1_hp -= ATTACK_DAMAGE; 
+            if(p1_hp < 0) p1_hp = 0; 
+            lv_bar_set_value(hp_bar1, p1_hp, LV_ANIM_ON); 
+            tone(PIN_BUZZER, 150, 100); // Son d'impact !
+        }
     }
 
     if (p1_hp <= 0 || p2_hp <= 0) {

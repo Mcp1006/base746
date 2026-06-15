@@ -23,6 +23,10 @@ enum ActiveGame {
 };
 ActiveGame current_game = GAME_NONE;
 
+#ifndef PIN_BUZZER
+#define PIN_BUZZER D6
+#endif
+
 // Variables pour le choix des skins (0=Escrime, 1=Chevalier, 2=Viking, 3=Ninja)
 int p1_skin = 0; 
 int p2_skin = 0;
@@ -81,7 +85,6 @@ static void btn_combat_1v1_cb(lv_event_t * e) {
 
 static void btn_course_cb(lv_event_t * e) {
     current_game = GAME_RACE;
-    // On passe l'étape de skin, on génère directement l'écran de la course
     if (scr_game != NULL) lv_obj_delete(scr_game);
     scr_game = lv_obj_create(NULL);
     lv_obj_remove_flag(scr_game, LV_OBJ_FLAG_SCROLLABLE);
@@ -163,6 +166,9 @@ static void btn_replay_cb(lv_event_t * e) {
 void show_game_over(int winner) {
     current_state = STATE_GAMEOVER;
     lv_obj_clear_flag(game_over_container, LV_OBJ_FLAG_HIDDEN);
+    
+    tone(PIN_BUZZER, 1000, 500); // Son de victoire éclatant !
+
     if (winner == 1) {
         lv_label_set_text(win_label, "BLUE WIN");
         lv_obj_set_style_text_color(win_label, lv_color_hex(0x4444FF), 0);
@@ -176,9 +182,12 @@ void show_game_over(int winner) {
 void show_game_over_race(int winner) {
     current_state = STATE_GAMEOVER;
     lv_obj_clear_flag(game_over_container, LV_OBJ_FLAG_HIDDEN);
+    
+    tone(PIN_BUZZER, 1000, 500); // Son de victoire éclatant !
+
     if (winner == 1) {
-        lv_label_set_text(win_label, "BLANC WIN");
-        lv_obj_set_style_text_color(win_label, lv_color_hex(0xFFFFFF), 0);
+        lv_label_set_text(win_label, "JAUNE WIN");
+        lv_obj_set_style_text_color(win_label, lv_color_hex(0xFFFF00), 0);
     } else if (winner == 2) {
         lv_label_set_text(win_label, "ROUGE WIN");
         lv_obj_set_style_text_color(win_label, lv_color_hex(0xFF0000), 0);
@@ -186,8 +195,8 @@ void show_game_over_race(int winner) {
         lv_label_set_text(win_label, "BLEU WIN");
         lv_obj_set_style_text_color(win_label, lv_color_hex(0x0088FF), 0);
     } else if (winner == 4) {
-        lv_label_set_text(win_label, "JAUNE WIN");
-        lv_obj_set_style_text_color(win_label, lv_color_hex(0xFFFF00), 0);
+        lv_label_set_text(win_label, "BLANC WIN");
+        lv_obj_set_style_text_color(win_label, lv_color_hex(0xFFFFFF), 0);
     }
 }
 
@@ -374,6 +383,8 @@ void mySetup()
     pinMode(PIN_P1_ATTACK, INPUT_PULLUP);
     pinMode(PIN_P2_BACK, INPUT_PULLUP);
     pinMode(PIN_P2_ATTACK, INPUT_PULLUP);
+    
+    pinMode(PIN_BUZZER, OUTPUT); // Configuration de la broche du Buzzer
 
     build_main_menu();
     build_skin_select();

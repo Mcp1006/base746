@@ -5,10 +5,14 @@
 #include <Arduino.h>
 
 // --- Configuration des broches pour la course ---
-#define PIN_BTN_J1 D2  // J1 - NC (Actif HIGH) - Jaune
-#define PIN_BTN_J2 D3  // J2 - NO (Actif LOW)  - Rouge
-#define PIN_BTN_J3 D5  // J3 - NC (Actif HIGH) - Bleu
-#define PIN_BTN_J4 D4  // J4 - NO (Actif LOW)  - Blanc
+#define PIN_BTN_J1 D2  // J1 - Jaune
+#define PIN_BTN_J2 D3  // J2  - Rouge
+#define PIN_BTN_J3 D5  // J3  - Bleu
+#define PIN_BTN_J4 D4  // J4  - Blanc
+
+#ifndef PIN_BUZZER
+#define PIN_BUZZER D6
+#endif
 
 // Prototype pour appeler le Game Over dans main.cpp
 extern void show_game_over_race(int winner);
@@ -18,13 +22,17 @@ static lv_obj_t * bar_j1;
 static lv_obj_t * bar_j2;
 static lv_obj_t * bar_j3;
 static lv_obj_t * bar_j4;
+static lv_obj_t * countdown_label;
 
 static int score_j1 = 0;
 static int score_j2 = 0;
 static int score_j3 = 0;
 static int score_j4 = 0;
 
-// Mémoires pour éviter la triche (détection de clic unique)
+// Compte à rebours
+static int race_countdown = 120; // En frames (~33ms par frame, 120 = ~4 secondes)
+
+// détection de clic unique
 static bool last_state_j1 = false;
 static bool last_state_j2 = false;
 static bool last_state_j3 = false;
@@ -42,6 +50,11 @@ static void reset_game_race() {
     lv_bar_set_value(bar_j2, 0, LV_ANIM_OFF);
     lv_bar_set_value(bar_j3, 0, LV_ANIM_OFF);
     lv_bar_set_value(bar_j4, 0, LV_ANIM_OFF);
+    
+    // Réinitialisation du décompte
+    race_countdown = 120;
+    lv_obj_clear_flag(countdown_label, LV_OBJ_FLAG_HIDDEN);
+    lv_label_set_text(countdown_label, "3");
 }
 
 static void init_game_race(lv_obj_t * scr) {
@@ -105,10 +118,48 @@ static void init_game_race(lv_obj_t * scr) {
     lv_label_set_text(title, "MARTELAGE INTENSIF !");
     lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 10);
+    
+    // Label du compte à rebours
+    countdown_label = lv_label_create(scr);
+    lv_obj_set_style_text_font(countdown_label, &lv_font_montserrat_24, 0); 
+    lv_obj_set_style_text_color(countdown_label, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_align(countdown_label, LV_ALIGN_CENTER, 0, 0);
 }
 
 static void game_race_loop() {
-    // 1. Lecture des états physiques (avec adaptation NO/NC de tes boutons)
+    // --- GESTION DU COMPTE A REBOURS ---
+    if (race_countdown > 0) {
+        if (race_countdown == 120) {
+            tone(PIN_BUZZER, 440, 100); // Bip "3"
+        } else if (race_countdown == 90) { 
+            lv_label_set_text(countdown_label, "2"); 
+            tone(PIN_BUZZER, 440, 100); // Bip "2"
+        } else if (race_countdown == 60) { 
+            lv_label_set_text(countdown_label, "1"); 
+            tone(PIN_BUZZER, 440, 100); // Bip "1"
+        } else if (race_countdown == 30) { 
+            lv_label_set_text(countdown_label, "GO !"); 
+            tone(PIN_BUZZER, 880, 300); // Bip Départ !
+        }
+        
+        race_countdown--;
+        
+        // On empêche les joueurs d'appuyer avant le "GO !"
+        if (race_countdown >= 30) {
+            // Actualisation continue pour éviter qu'un joueur triche en maintenant le bouton avant le GO
+            last_state_j1 = (digitalRead(PIN_BTN_J1) == HIGH);
+            last_state_j2 = (digitalRead(PIN_BTN_J2) == LOW);
+            last_state_j3 = (digitalRead(PIN_BTN_J3) == HIGH);
+            last_state_j4 = (digitalRead(PIN_BTN_J4) == LOW);
+            return; 
+        }
+    } else if (race_countdown == 0) {
+        // Disparition du texte "GO !" après 1 seconde
+        lv_obj_add_flag(countdown_label, LV_OBJ_FLAG_HIDDEN);
+        race_countdown--; // Evite de boucler ici
+    }
+
+    // 1. Lecture des états physiques
     bool cur_j1 = (digitalRead(PIN_BTN_J1) == HIGH);
     bool cur_j2 = (digitalRead(PIN_BTN_J2) == LOW);
     bool cur_j3 = (digitalRead(PIN_BTN_J3) == HIGH);
@@ -139,10 +190,10 @@ static void game_race_loop() {
     last_state_j4 = cur_j4;
 
     // 4. Vérification du gagnant
-    if (score_j1 >= MAX_CLICKS) show_game_over_race(4);
+    if (score_j1 >= MAX_CLICKS) show_game_over_race(1);
     else if (score_j2 >= MAX_CLICKS) show_game_over_race(2);
     else if (score_j3 >= MAX_CLICKS) show_game_over_race(3);
-    else if (score_j4 >= MAX_CLICKS) show_game_over_race(1);
+    else if (score_j4 >= MAX_CLICKS) show_game_over_race(4);
 }
 
 #endif
